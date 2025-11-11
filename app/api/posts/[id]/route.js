@@ -29,7 +29,7 @@ export async function DELETE(req, { params }) {
 // UPDATE
 
 export async function PUT(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const { title, content } = await req.json();
 
   try {
