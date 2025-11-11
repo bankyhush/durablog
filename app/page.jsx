@@ -2,7 +2,6 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -14,8 +13,6 @@ export default function BlogHomeUI() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const queryClient = useQueryClient();
-
-  const router = useRouter();
 
   // Create New Blog
   const newBlog = async (data) => {
@@ -29,6 +26,7 @@ export default function BlogHomeUI() {
         setSuccess("Post created successfully");
         reset();
         queryClient.invalidateQueries({ queryKey: ["blogging"] });
+        setTimeout(() => setSuccess(""), 2000);
       }
     } catch (error) {
       setError(error.response?.data?.message || "Failed to create post");
@@ -84,12 +82,12 @@ export default function BlogHomeUI() {
         title: data.title,
         content: data.content,
       });
-      if (res.data.success) {
-        setSuccess("Post updated successfully");
-        reset();
-        queryClient.invalidateQueries({ queryKey: ["blogging"] });
-        router.push("/");
-      }
+
+      setSuccess("Post updated successfully");
+      reset();
+      queryClient.invalidateQueries({ queryKey: ["blogging"] });
+      // Optional: clear success message after a short delay
+      setTimeout(() => setSuccess(""), 2000);
     } catch (error) {
       setError(error.response?.data?.message || "Failed to update post");
     } finally {
