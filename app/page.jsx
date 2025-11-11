@@ -6,13 +6,15 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 export default function BlogHomeUI() {
-  const { register, handleSubmit, reset } = useForm();
+  const { register, handleSubmit, reset, setValue } = useForm();
   const [isPending, setIsPending] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const queryClient = useQueryClient();
 
+  // Create New Blog
   const newBlog = async (data) => {
     setIsPending(true);
     setError("");
@@ -23,7 +25,6 @@ export default function BlogHomeUI() {
       if (res.data.success) {
         setSuccess("Post created successfully");
         reset();
-        // Refetch posts to show the new one
         queryClient.invalidateQueries({ queryKey: ["blogging"] });
       }
     } catch (error) {
@@ -33,7 +34,7 @@ export default function BlogHomeUI() {
     }
   };
 
-  // Data fetching
+  // Fetch Blogs
   const fetchBlogs = async () => {
     const res = await axios.get("/api/posts");
     return res.data;
@@ -45,21 +46,51 @@ export default function BlogHomeUI() {
   });
 
   // Delete Post
-
-  const deletePost = async ({ id }) => {
-    setDeleting(true);
+  const deletePost = async (id) => {
+    setDeletingId(id);
     setError("");
     setSuccess("");
 
     try {
       await axios.delete(`/api/posts/${id}`);
       setSuccess("Post deleted successfully");
-      // Refetch posts to reflect deletion
       queryClient.invalidateQueries({ queryKey: ["blogging"] });
     } catch (error) {
       setError(error.response?.data?.message || "Failed to delete post");
     } finally {
-      setDeleting(false);
+      setDeletingId(null);
+    }
+  };
+
+  // Edit Post (fill the form)
+  const startEdit = (post) => {
+    setEditingId(post.id);
+    setValue("id", post.id);
+    setValue("title", post.title);
+    setValue("content", post.content);
+  };
+
+  // Update Post
+  const updatePost = async (data) => {
+    setIsPending(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await axios.put(`/api/posts/${data.id}`, {
+        title: data.title,
+        content: data.content,
+      });
+      if (res.data.success) {
+        setSuccess("Post updated successfully");
+        reset();
+        setEditingId(null);
+        queryClient.invalidateQueries({ queryKey: ["blogging"] });
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to update post");
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -70,13 +101,17 @@ export default function BlogHomeUI() {
           ✍️ Dura Blog
         </h1>
 
-        {/* Create Post */}
+        {/* Create / Edit Post Form */}
         <section className="mb-10 border border-gray-200 dark:border-gray-700 rounded-lg p-6 bg-gray-50 dark:bg-gray-700 shadow-sm">
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
-            Create a New Post
+            {editingId ? "✏️ Edit Post" : "🆕 Create a New Post"}
           </h2>
 
-          <form onSubmit={handleSubmit(newBlog)} className="space-y-4 mt-4">
+          <form
+            onSubmit={handleSubmit(editingId ? updatePost : newBlog)}
+            className="space-y-4 mt-4"
+          >
+            <input type="hidden" {...register("id")} />
             <input
               type="text"
               {...register("title")}
@@ -84,21 +119,41 @@ export default function BlogHomeUI() {
               className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             />
             <textarea
-              placeholder="Write your post content..."
               {...register("content")}
+              placeholder="Write your post content..."
               rows={5}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             ></textarea>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-3">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    reset();
+                    setEditingId(null);
+                  }}
+                  className="px-6 py-3 rounded-lg bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 font-semibold"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={isPending}
                 className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition"
               >
-                {isPending ? "Publishing..." : "Publish Post"}
+                {isPending
+                  ? editingId
+                    ? "Updating..."
+                    : "Publishing..."
+                  : editingId
+                  ? "Update Post"
+                  : "Publish Post"}
               </button>
             </div>
           </form>
+
+          {/* Alerts */}
           <div className="mt-2 space-y-2">
             {error && (
               <span className="inline-block bg-red-100 text-red-800 text-sm font-semibold px-3 py-1 rounded-full">
@@ -113,13 +168,12 @@ export default function BlogHomeUI() {
           </div>
         </section>
 
-        {/* Blog Posts */}
+        {/* Blog List */}
         <section>
           <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100 mb-6">
             Recent Posts
           </h2>
 
-          {/* Skeleton Loader */}
           {isLoading && (
             <ul className="space-y-6">
               {Array.from({ length: 3 }).map((_, idx) => (
@@ -130,20 +184,13 @@ export default function BlogHomeUI() {
                   <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-4"></div>
                   <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-2"></div>
                   <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-6"></div>
-                  <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                    <span className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded"></span>
-                    <div className="flex gap-2">
-                      <span className="h-6 w-12 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
-                      <span className="h-6 w-12 bg-gray-300 dark:bg-gray-600 rounded-full"></span>
-                    </div>
-                  </div>
                 </li>
               ))}
             </ul>
           )}
-          {isError && <p className="text-red-600">{"Failed to fetch posts"}</p>}
 
-          {/* No Posts */}
+          {isError && <p className="text-red-600">Failed to fetch posts.</p>}
+
           {!isLoading && data?.length === 0 && (
             <p className="text-gray-500 dark:text-gray-400 text-center py-6">
               No posts found.
@@ -154,7 +201,7 @@ export default function BlogHomeUI() {
             {data?.map((post) => (
               <li
                 key={post.id}
-                className="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg shadow hover:shadow-lg transition-all duration-300"
+                className="p-6 bg-gray-50 dark:bg-gray-700 rounded-lg shadow hover:shadow-lg transition"
               >
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   {post.title}
@@ -165,22 +212,22 @@ export default function BlogHomeUI() {
                     : post.content}
                 </p>
                 <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-                  <span className="flex items-center gap-1">
-                    🕒{" "}
-                    <span className="text-gray-600 dark:text-gray-300">
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
+                  <span>
+                    🕒 {new Date(post.createdAt).toLocaleDateString()}
                   </span>
                   <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-blue-100 rounded-full text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-600 transition">
+                    <button
+                      onClick={() => startEdit(post)}
+                      className="px-3 py-1 bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-blue-100 rounded-full text-sm font-semibold hover:bg-blue-200 dark:hover:bg-blue-600 transition"
+                    >
                       Edit
                     </button>
                     <button
-                      onClick={() => deletePost(post)}
-                      disabled={deleting === post.id}
-                      className="cursor-pointer px-3 py-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-red-100 rounded-full text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-600 transition"
+                      onClick={() => deletePost(post.id)}
+                      disabled={deletingId === post.id}
+                      className="px-3 py-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-red-100 rounded-full text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-600 transition"
                     >
-                      {deleting === post.id ? "Deleting..." : "Delete"}
+                      {deletingId === post.id ? "Deleting..." : "Delete"}
                     </button>
                   </div>
                 </div>

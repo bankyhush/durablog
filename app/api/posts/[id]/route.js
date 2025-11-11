@@ -20,7 +20,43 @@ export async function DELETE(req, { params }) {
   } catch (error) {
     console.error("DELETE Error:", error);
     return NextResponse.json(
-      { success: false, message: "Internal Server Error" },
+      { success: false, message: "Delete Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
+
+// UPDATE
+
+export async function PUT(req, { params }) {
+  const { id } = params;
+  const { title, content } = await req.json();
+
+  try {
+    if (!id) {
+      return NextResponse.json(
+        { success: false, message: "Invalid Blogpost" },
+        { status: 400 }
+      );
+    }
+
+    if (!title || !content) {
+      return NextResponse.json(
+        { success: false, message: "All fields are required" },
+        { status: 404 }
+      );
+    }
+
+    const updatedPost = await prisma.blogpost.update({
+      where: { id: Number(id) },
+      data: { title, content },
+    });
+
+    return NextResponse.json(updatedPost);
+  } catch (error) {
+    console.error("UPDATE Error:", error);
+    return NextResponse.json(
+      { success: false, message: "Update Internal Server Error" },
       { status: 500 }
     );
   }
