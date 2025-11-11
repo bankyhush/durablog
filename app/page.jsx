@@ -56,6 +56,7 @@ export default function BlogHomeUI() {
       await axios.delete(`/api/posts/${id}`);
       setSuccess("Post deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["blogging"] });
+      setTimeout(() => setSuccess(""), 2000);
     } catch (error) {
       setError(error.response?.data?.message || "Failed to delete post");
     } finally {
@@ -99,7 +100,7 @@ export default function BlogHomeUI() {
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 font-sans">
       <main className="w-full max-w-4xl bg-white dark:bg-gray-800 shadow-2xl rounded-xl p-8">
         <h1 className="text-4xl font-extrabold text-center text-gray-900 dark:text-white mb-10">
-          ✍️ Dura Blog
+          ✍️ Dura Short Blog
         </h1>
 
         {/* Create / Edit Post Form */}

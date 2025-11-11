@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Dura Blog",
+  title: "Dura Short Blog",
   description: "Dura Blog built with Next.js 13, Prisma, and Tailwind CSS",
 };
 
