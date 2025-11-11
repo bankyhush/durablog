@@ -160,7 +160,9 @@ export default function BlogHomeUI() {
                   {post.title}
                 </h3>
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  {post.content}
+                  {post.content.length > 100
+                    ? post.content.slice(0, 100) + "..."
+                    : post.content}
                 </p>
                 <div className="flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
                   <span className="flex items-center gap-1">
