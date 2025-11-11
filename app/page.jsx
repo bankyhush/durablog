@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -13,6 +14,8 @@ export default function BlogHomeUI() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const queryClient = useQueryClient();
+
+  const router = useRouter();
 
   // Create New Blog
   const newBlog = async (data) => {
@@ -84,8 +87,8 @@ export default function BlogHomeUI() {
       if (res.data.success) {
         setSuccess("Post updated successfully");
         reset();
-        setEditingId(null);
         queryClient.invalidateQueries({ queryKey: ["blogging"] });
+        router.push("/");
       }
     } catch (error) {
       setError(error.response?.data?.message || "Failed to update post");
